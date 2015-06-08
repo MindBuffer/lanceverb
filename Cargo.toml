@@ -1,0 +1,9 @@
+
+[package]
+name = "lanceverb"
+version = "0.1.0"
+authors = ["josh"]
+
+[dependencies]
+num = "*"
+dsp-chain = "*"
