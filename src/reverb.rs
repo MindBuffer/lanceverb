@@ -227,11 +227,22 @@ impl Reverb {
 
 impl<S> dsp::Node<S> for Reverb where S: Sample {
     fn audio_requested(&mut self, output: &mut [S], settings: dsp::Settings) {
-        for frame in output.chunks_mut(settings.channels as usize) {
-            let dry = frame[0].to_wave();
-            let (output_1, output_2) = self.calc_frame(dry, 0.6);
-            frame[0] = Sample::from_wave(output_1 * 0.5);
-            frame[1] = Sample::from_wave(output_2 * 0.5);
+        match settings.channels {
+            // Mono.
+            1 => for frame in output.iter_mut() {
+                let dry = frame.to_wave();
+                let (output_1, output_2) = self.calc_frame(dry, 0.6);
+                *frame = Sample::from_wave(output_1);
+            },
+            // Stereo.
+            2 => for frame in output.chunks_mut(2) {
+                let dry = (frame[0].to_wave() + frame[1].to_wave()) / 2.0;
+                let (output_1, output_2) = self.calc_frame(dry, 0.6);
+                frame[0] = Sample::from_wave(output_1);
+                frame[1] = Sample::from_wave(output_2);
+            },
+            // No other number of channels is supported.
+            n => panic!("The given number of channels ({:?}) is not supported by lanceverb", n),
         }
     }
 }
