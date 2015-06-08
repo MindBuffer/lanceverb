@@ -14,7 +14,7 @@ pub struct DelayLine<B> {
 impl<B> DelayLine<B> where 
     B: Buffer,
 {
-    
+
     /// Default constructor for a delay line
     pub fn new() -> DelayLine<B> {
         DelayLine { 
@@ -29,8 +29,15 @@ impl<B> DelayLine<B> where
     }
 
     /// Get element at back
-    pub fn back(&self) -> Option<f32> {
-        self.buffer.last().map(|&f| f)
+    pub fn back(&self) -> f32 {
+        let idx = self.index_back();
+        *self.buffer.index(idx)
+    }
+
+    /// Get index of back element.
+    pub fn index_back(&self) -> usize {
+        let i = self.pos + 1;
+        if i < self.size() { i } else { 0 }
     }
 
     /// Read value at delay i
@@ -72,10 +79,7 @@ impl<B> DelayLine<B> where
 pub trait Buffer {
     fn zeroed() -> Self;
     fn len(&self) -> usize;
-    fn last(&self) -> Option<&f32>;
     fn index(&self, idx: usize) -> &f32;
     fn index_mut(&mut self, idx: usize) -> &mut f32;
 }
-
-
 

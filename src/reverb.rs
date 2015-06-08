@@ -10,7 +10,7 @@ struct OnePole {
 }
 
 impl OnePole {
-    
+
     /// Contructor for a new OnePole 
     pub fn new() -> OnePole {
         OnePole {
@@ -29,6 +29,7 @@ impl OnePole {
         self.one = i * self.a + self.one * self.b;
         self.one
     }
+
 }
 
 
@@ -69,44 +70,41 @@ pub struct Reverb {
 
 impl Reverb {
 
-    fn uninitialised() -> Reverb {
-        use std::mem::uninitialized;
-        unsafe {
-            Reverb {
-                delay_feed_1: 0.0,
-                delay_feed_2: 0.0,
-                decay_1: 0.0,
-                decay_2: 0.0,
-                decay: 0.0,
+    fn construct() -> Reverb {
+        Reverb {
+            delay_feed_1: 0.0,
+            delay_feed_2: 0.0,
+            decay_1: 0.0,
+            decay_2: 0.0,
+            decay: 0.0,
 
-                pre_delay: DelayLine::new(),
-                one_pole: OnePole::new(),
-                all_pass_in_1: DelayLine::new(),
-                all_pass_in_2: DelayLine::new(),
-                all_pass_in_3: DelayLine::new(),
-                all_pass_in_4: DelayLine::new(),
+            pre_delay: DelayLine::new(),
+            one_pole: OnePole::new(),
+            all_pass_in_1: DelayLine::new(),
+            all_pass_in_2: DelayLine::new(),
+            all_pass_in_3: DelayLine::new(),
+            all_pass_in_4: DelayLine::new(),
 
-                all_pass_decay_11: DelayLine::new(),
-                all_pass_decay_12: DelayLine::new(),
+            all_pass_decay_11: DelayLine::new(),
+            all_pass_decay_12: DelayLine::new(),
 
-                delay_11: DelayLine::new(),
-                delay_12: DelayLine::new(),
+            delay_11: DelayLine::new(),
+            delay_12: DelayLine::new(),
 
-                one_pole_1: OnePole::new(),
-                all_pass_decay_21: DelayLine::new(),
-                all_pass_decay_22: DelayLine::new(),
+            one_pole_1: OnePole::new(),
+            all_pass_decay_21: DelayLine::new(),
+            all_pass_decay_22: DelayLine::new(),
 
-                delay_21: DelayLine::new(),
-                delay_22: DelayLine::new(),
+            delay_21: DelayLine::new(),
+            delay_22: DelayLine::new(),
 
-                one_pole_2: OnePole::new(),
-            }
+            one_pole_2: OnePole::new(),
         }
     }
 
     /// Contructor default reverb
     pub fn new() -> Reverb {
-        let mut verb = Reverb::uninitialised();
+        let mut verb = Reverb::construct();
         verb.bandwidth(0.9995);
         verb.decay(0.85);
         verb.damping(0.2);
@@ -186,8 +184,8 @@ impl Reverb {
         value = self.all_pass_in_3.allpass(value, self.delay_feed_2);
         value = self.all_pass_in_4.allpass(value, self.delay_feed_2);
 
-        let mut a = value + self.delay_22.back().unwrap_or(0.0) * self.decay;
-        let mut b = value + self.delay_12.back().unwrap_or(0.0) * self.decay;
+        let mut a = value + self.delay_22.back() * self.decay;
+        let mut b = value + self.delay_12.back() * self.decay;
 
         a = self.all_pass_decay_11.allpass(a, -self.decay_1);
         a = self.delay_11.get_write_and_step(a);
@@ -209,7 +207,7 @@ impl Reverb {
             + self.delay_22.read(1996)
             - self.delay_11.read(1990)
             - self.all_pass_decay_12.read(187)
-            - self.delay_12.read(1066)
+            - self.delay_12.read(1066) 
         } * gain;
 
         let output_2 = {
@@ -219,7 +217,7 @@ impl Reverb {
             + self.delay_12.read(2673)
             - self.delay_21.read(2111)
             - self.all_pass_decay_22.read(335)
-            - self.delay_22.read(121)
+            - self.delay_22.read(121) 
         } * gain;
 
         (output_1, output_2)
@@ -229,22 +227,11 @@ impl Reverb {
 
 impl<S> dsp::Node<S> for Reverb where S: Sample {
     fn audio_requested(&mut self, output: &mut [S], settings: dsp::Settings) {
-        let channels = settings.channels as usize;
-        for i in (0..settings.frames as usize) {
-            for j in (0..channels) {
-                let dry = output[i * channels + j].to_wave();
-                let (output_1, output_2) = self.calc_frame(dry, 1.0);
-                output[i * channels + 0] = Sample::from_wave(output_1 * 0.5);
-                output[i * channels + 1] = Sample::from_wave(output_2 * 0.5);
-                // match settings.channels {
-                //     1 => output[i] = Sample::from_wave(output_1),
-                //     2 => {
-                //         output[i * channels] = Sample::from_wave(output_1);
-                //         output[i * channels + 1] = Sample::from_wave(output_2);
-                //     },
-                //     _ => panic!("Can't handle this num of chans d00d!"),
-                // }
-            }
+        for frame in output.chunks_mut(settings.channels as usize) {
+            let dry = frame[0].to_wave();
+            let (output_1, output_2) = self.calc_frame(dry, 0.6);
+            frame[0] = Sample::from_wave(output_1 * 0.5);
+            frame[1] = Sample::from_wave(output_2 * 0.5);
         }
     }
 }
@@ -257,13 +244,6 @@ macro_rules! impl_buffer {
                 [0.0; $n]
             }
             fn len(&self) -> usize { $n }
-            fn last(&self) -> Option<&f32> {
-                if self.len() > 0 {
-                    Some(self.index(self.len() - 1))
-                } else {
-                    None
-                }
-            }
             fn index(&self, idx: usize) -> &f32 {
                 &self[idx]
             }
