@@ -3,6 +3,7 @@ use dsp::{self, Sample};
 use num::traits::One;
 use num::Float;
 
+#[derive(Copy, Clone, Debug)]
 struct OnePole { 
     one: f32,
     a: f32,
@@ -38,6 +39,7 @@ impl OnePole {
 /// Dattorro, J (1997). Effect design: Part 1: Reverberator and other filters.
 /// Journal of Audio Engineering Society
 /// [45(9):660-684](https://ccrma.stanford.edu/~dattorro/EffectDesignPart1.pdf)
+#[derive(Clone, Debug)]
 pub struct Reverb {
     delay_feed_1: f32,
     delay_feed_2: f32,
@@ -119,7 +121,7 @@ impl Reverb {
         self.one_pole_1.damping(1.0 - value);
         self   
     }
-    
+
     /// Set high-frequency damping amount, in [0,1]
     /// Higher amounts will dampen the diffuse sound more quickly.
     /// rather than high frequencies.
@@ -227,29 +229,36 @@ impl Reverb {
 
 impl<S> dsp::Node<S> for Reverb where S: Sample {
     fn audio_requested(&mut self, output: &mut [S], settings: dsp::Settings) {
-        for frame in output.chunks_mut(settings.channels as usize) {
-            let dry = frame[0].to_wave();
-            let (output_1, output_2) = self.calc_frame(dry, 0.6);
-            frame[0] = Sample::from_wave(output_1 * 0.5);
-            frame[1] = Sample::from_wave(output_2 * 0.5);
+        match settings.channels {
+            // Mono.
+            1 => for frame in output.iter_mut() {
+                let dry = frame.to_wave();
+                let (output_1, output_2) = self.calc_frame(dry, 0.6);
+                *frame = Sample::from_wave((output_1 + output_2) / 2.0);
+            },
+            // Stereo.
+            2 => for frame in output.chunks_mut(2) {
+                let dry = (frame[0].to_wave() + frame[1].to_wave()) / 2.0;
+                let (output_1, output_2) = self.calc_frame(dry, 0.6);
+                frame[0] = Sample::from_wave(output_1);
+                frame[1] = Sample::from_wave(output_2);
+            },
+            // No other number of channels is supported.
+            n => panic!("The given number of channels ({:?}) is not supported by lanceverb", n),
         }
     }
 }
 
 
+/// Generates an implementation of Buffer for a fixed-size array with "$n" number of elements.
 macro_rules! impl_buffer {
     ($n:expr) => (
         impl Buffer for [f32; $n] {
-            fn zeroed() -> [f32; $n] {
-                [0.0; $n]
-            }
+            fn zeroed() -> Self { [0.0; $n] }
+            fn clone(&self) -> Self { *self }
             fn len(&self) -> usize { $n }
-            fn index(&self, idx: usize) -> &f32 {
-                &self[idx]
-            }
-            fn index_mut(&mut self, idx: usize) -> &mut f32 {
-                &mut self[idx]
-            }
+            fn index(&self, idx: usize) -> &f32 { &self[idx] }
+            fn index_mut(&mut self, idx: usize) -> &mut f32 { &mut self[idx] }
         }
     )
 }

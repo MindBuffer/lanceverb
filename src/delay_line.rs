@@ -11,9 +11,7 @@ pub struct DelayLine<B> {
     buffer: B,
 }
 
-impl<B> DelayLine<B> where 
-    B: Buffer,
-{
+impl<B> DelayLine<B> where  B: Buffer {
 
     /// Default constructor for a delay line
     pub fn new() -> DelayLine<B> {
@@ -75,9 +73,28 @@ impl<B> DelayLine<B> where
     }
 }
 
+
+impl<B> Clone for DelayLine<B> where B: Buffer {
+    fn clone(&self) -> Self {
+        DelayLine {
+            pos: self.pos,
+            buffer: Buffer::clone(&self.buffer),
+        }
+    }
+}
+
+
+impl<B> ::std::fmt::Debug for DelayLine<B> where B: Buffer {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+        write!(f, "pos: {:?}, buffer: [f32; {:?}]", self.pos, self.buffer.len())
+    }
+}
+
+
 /// Some buffer of Float values that is compatible with the delay-line
 pub trait Buffer {
     fn zeroed() -> Self;
+    fn clone(&self) -> Self;
     fn len(&self) -> usize;
     fn index(&self, idx: usize) -> &f32;
     fn index_mut(&mut self, idx: usize) -> &mut f32;
