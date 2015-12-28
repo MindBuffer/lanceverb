@@ -1,7 +1,6 @@
-
 [package]
 name = "lanceverb"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["josh, mitchell.nordine@gmail.com"]
 description = "A super-fast mono-to-stereo plate reverberator."
 readme = "README.md"
@@ -13,4 +12,4 @@ homepage = "https://github.com/RustAudio/lanceverb"
 
 [dependencies]
 num = "0.1.27"
-dsp-chain = "0.9.0"
+dsp-chain = "0.10.0"
