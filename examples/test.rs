@@ -8,7 +8,7 @@ extern crate dsp;
 extern crate lanceverb;
 extern crate portaudio as pa;
 
-use dsp::{Node, Sample};
+use dsp::Node;
 use lanceverb::Reverb;
 
 
@@ -27,7 +27,7 @@ fn run() -> Result<(), pa::Error> {
 
     // Callback used to construct the duplex sound stream.
     let callback = move |pa::DuplexStreamCallbackArgs { in_buffer, out_buffer, .. }| {
-        Sample::zero_buffer(out_buffer);
+        dsp::sample::buffer::equilibrium(out_buffer);
         for (out_s, in_s) in out_buffer.iter_mut().zip(in_buffer.iter()) {
             *out_s = if *in_s > 1.0 { 1.0 }
                      else if *in_s < -1.0 { -1.0 }
@@ -48,7 +48,7 @@ fn run() -> Result<(), pa::Error> {
 
     // Wait for our stream to finish.
     while let Ok(true) = stream.is_active() {
-        ::std::thread::sleep_ms(16);
+        ::std::thread::sleep(::std::time::Duration::from_millis(16));
     }
 
     Ok(())
