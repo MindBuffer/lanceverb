@@ -1,5 +1,5 @@
 use delay_line::{Buffer, DelayLine};
-use dsp::{self, FromSample, Sample};
+use dsp::{self, Sample};
 use num::traits::One;
 use num::Float;
 
@@ -228,8 +228,7 @@ impl Reverb {
 
 
 impl<S> dsp::Node<S> for Reverb
-    where S: Sample + FromSample<f32>,
-          f32: FromSample<S>,
+    where S: Sample + dsp::sample::Duplex<f32>,
 {
     fn audio_requested(&mut self, output: &mut [S], settings: dsp::Settings) {
         match settings.channels {
