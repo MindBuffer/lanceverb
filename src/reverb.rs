@@ -1,7 +1,4 @@
 use delay_line::{Buffer, DelayLine};
-use dsp::{self, Sample};
-use num::traits::One;
-use num::Float;
 
 #[derive(Copy, Clone, Debug)]
 struct OnePole { 
@@ -35,8 +32,11 @@ impl OnePole {
 
 
 /// Plate Reverberator 
+///
 /// Design from:
+///
 /// Dattorro, J (1997). Effect design: Part 1: Reverberator and other filters.
+///
 /// Journal of Audio Engineering Society
 /// [45(9):660-684](https://ccrma.stanford.edu/~dattorro/EffectDesignPart1.pdf)
 #[derive(Clone, Debug)]
@@ -227,31 +227,6 @@ impl Reverb {
 }
 
 
-impl<S> dsp::Node<S> for Reverb
-    where S: Sample + dsp::sample::Duplex<f32>,
-{
-    fn audio_requested(&mut self, output: &mut [S], settings: dsp::Settings) {
-        match settings.channels {
-            // Mono.
-            1 => for frame in output.iter_mut() {
-                let dry = frame.to_sample();
-                let (output_1, output_2) = self.calc_frame(dry, 0.6);
-                *frame = ((output_1 + output_2) / 2.0).to_sample();
-            },
-            // Stereo.
-            2 => for frame in output.chunks_mut(2) {
-                let dry = (frame[0].to_sample::<f32>() + frame[1].to_sample::<f32>()) / 2.0;
-                let (output_1, output_2) = self.calc_frame(dry, 0.6);
-                frame[0] = output_1.to_sample();
-                frame[1] = output_2.to_sample();
-            },
-            // No other number of channels is supported.
-            n => panic!("The given number of channels ({:?}) is not supported by lanceverb", n),
-        }
-    }
-}
-
-
 /// Generates an implementation of Buffer for a fixed-size array with "$n" number of elements.
 macro_rules! impl_buffer {
     ($n:expr) => (
@@ -278,4 +253,3 @@ impl_buffer!(908);
 impl_buffer!(2656);
 impl_buffer!(4217);
 impl_buffer!(3163);
-
