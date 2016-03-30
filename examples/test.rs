@@ -8,7 +8,7 @@ extern crate dsp;
 extern crate lanceverb;
 extern crate portaudio as pa;
 
-use dsp::Node;
+use dsp::{Frame, Node};
 use lanceverb::Reverb;
 
 
@@ -18,7 +18,7 @@ fn main() {
 
 fn run() -> Result<(), pa::Error> {
 
-    const CHANNELS: u16 = 2;
+    const CHANNELS: usize = 2;
     const FRAMES: u32 = 128;
     const SAMPLE_HZ: f64 = 44_100.0;
 
@@ -27,15 +27,18 @@ fn run() -> Result<(), pa::Error> {
 
     // Callback used to construct the duplex sound stream.
     let callback = move |pa::DuplexStreamCallbackArgs { in_buffer, out_buffer, .. }| {
-        dsp::sample::buffer::equilibrium(out_buffer);
-        for (out_s, in_s) in out_buffer.iter_mut().zip(in_buffer.iter()) {
-            *out_s = if *in_s > 1.0 { 1.0 }
-                     else if *in_s < -1.0 { -1.0 }
-                     else { *in_s };
-        }
+        let in_buffer: &[[f32; CHANNELS]] = dsp::slice::to_frame_slice(in_buffer).unwrap();
+        let out_buffer: &mut [[f32; CHANNELS]] = dsp::slice::to_frame_slice_mut(out_buffer).unwrap();
+        dsp::slice::equilibrium(out_buffer);
 
-        let settings = dsp::Settings::new(SAMPLE_HZ as u32, FRAMES as u16, CHANNELS as u16);
-        verb.audio_requested(out_buffer, settings);
+        // Clamp the slice between -1.0 and 1.0.
+        dsp::slice::zip_map_in_place(out_buffer, in_buffer, |_, in_frame| {
+            in_frame.map(|s| if s > 1.0 { 1.0 } else if s < -1.0 { -1.0 } else { s })
+        });
+
+        // Apply the reverb.
+        verb.audio_requested(out_buffer, SAMPLE_HZ);
+
         pa::Continue
     };
 
