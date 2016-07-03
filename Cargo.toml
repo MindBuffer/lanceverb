@@ -9,10 +9,11 @@ license = "MIT"
 repository = "https://github.com/MindBuffer/lanceverb.git"
 homepage = "https://github.com/RustAudio/lanceverb"
 
-
 [dependencies]
-num = "0.1.31"
-dsp-chain = "0.12.0"
+dsp-chain = { optional = true, version = "0.13.1" }
+
+[features]
+default = ["dsp-chain"]
 
 [dev-dependencies]
-portaudio = "0.6.3"
+portaudio = "0.6.4"

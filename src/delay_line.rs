@@ -1,4 +1,3 @@
-
 use std::ops::{Index, IndexMut};
 
 /// Delay-line whose maximum size is fixed
@@ -99,4 +98,3 @@ pub trait Buffer {
     fn index(&self, idx: usize) -> &f32;
     fn index_mut(&mut self, idx: usize) -> &mut f32;
 }
-
