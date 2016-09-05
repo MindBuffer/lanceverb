@@ -1,5 +1,3 @@
-use std::ops::{Index, IndexMut};
-
 /// Delay-line whose maximum size is fixed
 /// The advantage of using a static versus dynamic array is that its elements
 /// can be laid out in a predicatable location in memeory. This can improve
